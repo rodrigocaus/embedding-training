@@ -6,6 +6,15 @@ from transformers.training_args import TrainingArguments
 
 
 class JSONLLoggerCallback(TrainerCallback):
+    """
+    A callback for logging training progress to a JSONL file.
+
+    Args:
+        filename (str): The name of the JSONL file to write logs to.
+        mode (Literal["w", "w+", "a", "a+"], optional): The file open mode. Defaults to "w+".
+            See Python's built-in `open` function for details on modes.
+    """
+    
     def __init__(self, filename: str, mode: Literal["w", "w+", "a", "a+"] = "w+") -> None:
         self._filename = filename
         self._mode = mode
