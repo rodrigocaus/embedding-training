@@ -1,0 +1,22 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+torch = "*"
+sentence-transformers = "*"
+evaluate = "*"
+accelerate = "*"
+plotly = "*"
+mteb = "*"
+bm25s = "*"
+pyyaml = "*"
+pandas = "*"
+
+[dev-packages]
+ruff = "*"
+autopep8 = "*"
+
+[requires]
+python_version = "3.12"
