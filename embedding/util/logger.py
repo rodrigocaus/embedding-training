@@ -14,7 +14,7 @@ class JSONLLoggerCallback(TrainerCallback):
         mode (Literal["w", "w+", "a", "a+"], optional): The file open mode. Defaults to "w+".
             See Python's built-in `open` function for details on modes.
     """
-    
+
     def __init__(self, filename: str, mode: Literal["w", "w+", "a", "a+"] = "w+") -> None:
         self._filename = filename
         self._mode = mode
@@ -38,4 +38,6 @@ class JSONLLoggerCallback(TrainerCallback):
             self.writer.write(line)
 
     def on_train_end(self, *pargs, **kwargs):
-        self.writer.close()
+        if self._writer is not None:
+            self._writer.close()
+            self._writer = None
