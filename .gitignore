@@ -1,0 +1,14 @@
+# Development environment files
+.vscode
+.idea
+# Environment variables
+.env
+.venv
+env
+venv
+# Byte-compiled / optimized
+__pycache__/
+*.py[cod]
+.ruff_cache/
+# Models Folder
+models/
