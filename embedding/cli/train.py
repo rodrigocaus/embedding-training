@@ -2,7 +2,7 @@ import os
 import config
 import preprocess
 from losses import kl
-from util import logger
+from util import logger, profiler
 
 from torch import nn
 from typing import NamedTuple, Optional
@@ -103,6 +103,9 @@ def main(filename: str):
         training_config.output_dir, training_config.run_name
     )
 
+    logs_dir = os.path.join(training_args.output_dir, "logs.jsonl")
+    metrics_dir = os.path.join(training_args.output_dir, "resources.jsonl")
+
     ## Load Base Model ##
     base_model = SentenceTransformer(
         training_config.base_model.name, **training_config.base_model.args
@@ -133,6 +136,10 @@ def main(filename: str):
         eval_dataset=validation_dataset,
         loss=losses,
         evaluator=evaluator,
+        callbacks=[
+            logger.JSONLLoggerCallback(logs_dir),
+            profiler.MemoryProfilerCallback(metrics_dir, monitor_cuda=True)
+        ]
     )
 
     trainer.train()
