@@ -1,13 +1,10 @@
-import argparse
 import os
 import sys
-
-sys.path.append(os.path.abspath(".."))
-
-import cli
+import argparse
 
 
 def train(args: argparse.Namespace):
+    import cli
     return cli.train.main(args.config_file)
 
 
@@ -16,6 +13,7 @@ def evaluate(args: argparse.Namespace):
 
 
 if __name__ == "__main__":
+    sys.path.append(os.path.abspath("."))
 
     # create the top-level parser
     parser = argparse.ArgumentParser(
