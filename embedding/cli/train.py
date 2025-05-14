@@ -1,7 +1,7 @@
 import os
 import config
 import preprocess
-from losses import kl
+import losses as custom_losses
 from util import logger, profiler
 
 from torch import nn
@@ -20,9 +20,41 @@ class Objective(NamedTuple):
     validation_dataset: Optional[Dataset]
 
 
-def map_objective(model: SentenceTransformer, spec: config.TrainingObjective) -> Objective:
+def map_teacher(
+    model: SentenceTransformer,
+    loss: nn.Module,
+    spec: config.DistilConfig,
+    objective: str,
+    teacher_pool: dict
+) -> nn.Module:
+    if spec.teacher.name not in teacher_pool:
+        teacher_pool[spec.teacher.name] = SentenceTransformer(
+            spec.teacher.name, **spec.teacher.args
+        )
+
+    teacher = teacher_pool[spec.teacher.name]
+    if objective == "contrastive":
+        distil_loss = custom_losses.KLSimilarityLoss(
+            student=model, teacher=teacher, **spec.loss_args
+        )
+    if objective == "similarity":
+        distil_loss = custom_losses.SimilarityDistillationLoss(
+            student=model, teacher=teacher, **spec.loss_args
+        )
+
+    return custom_losses.CompositionLoss(
+        losses=[loss, distil_loss],
+        weights=[1.0, spec.alpha]
+    )
+
+
+def map_objective(
+    model: SentenceTransformer,
+    spec: config.TrainingObjective,
+    teacher_pool: dict
+) -> Objective:
     objective_type = spec.type
-    if objective_type not in ("contrastive", "similarity", "distillation"):
+    if objective_type not in ("contrastive", "similarity"):
         raise ValueError(f"Unknown objective type: {objective_type}")
 
     ## LOSS DEFINITION ##
@@ -36,22 +68,15 @@ def map_objective(model: SentenceTransformer, spec: config.TrainingObjective) ->
         loss = losses.CoSENTLoss(model=model, **spec.loss_args)
         dataset_preprocessor = preprocess.EFAQCosineSimilarityGenerator
 
-    elif objective_type == "distillation":
-        if not spec.teacher:
-            raise ValueError(
-                "Teacher model not specified for distillation loss")
-
-        teacher = SentenceTransformer(spec.teacher.name, **spec.teacher.args)
-        loss = kl.KLSimilarityLoss(
-            student=model, teacher=teacher, **spec.loss_args
-        )
-        dataset_preprocessor = preprocess.EFAQRankingGenerator
-
     if spec.matryoshka:
         loss = losses.MatryoshkaLoss(
             model=model,
             loss=loss,
             **spec.matryoshka
+        )
+    if spec.distillation:
+        loss = map_teacher(
+            model, loss, spec.distillation, objective_type, teacher_pool
         )
 
     ## DATASETS DEFINITION ##
@@ -112,11 +137,12 @@ def main(filename: str):
     )
 
     ## Load Objectives ##
+    teacher_pool = {}
     train_dataset = {}
     validation_dataset = {}
     losses = {}
     for objective_spec in training_config.objectives:
-        objective = map_objective(base_model, objective_spec)
+        objective = map_objective(base_model, objective_spec, teacher_pool)
         losses[objective.name] = objective.loss
         train_dataset[objective.name] = objective.train_dataset
         if objective.validation_dataset:

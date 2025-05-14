@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformerTrainingArguments
 
 
 Object = Dict[str, Any]
-ObjectiveType = Literal["contrastive", "similarity", "distillation"]
+ObjectiveType = Literal["contrastive", "similarity"]
 
 
 @dataclass
@@ -45,12 +45,19 @@ class TrainingDatasets:
 
 
 @dataclass
+class DistilConfig:
+    alpha: float
+    teacher: ModelConfig
+    loss_args: Object = field(default_factory=dict)
+
+
+@dataclass
 class TrainingObjective:
     type: ObjectiveType
     datasets: TrainingDatasets
     loss_args: Object = field(default_factory=dict)
     matryoshka: Object = field(default_factory=dict)
-    teacher: Optional[ModelConfig] = field(default=None)
+    distillation: Optional[DistilConfig] = field(default=None)
 
 
 @dataclass
