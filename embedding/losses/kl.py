@@ -36,7 +36,7 @@ class KLSimilarityLoss(nn.Module):
         Example:
             ::
 
-                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer, losses
+                from sentence_transformers import SentenceTransformer, SentenceTransformerTrainer
                 from datasets import Dataset
 
                 student = SentenceTransformer("microsoft/mpnet-base")
@@ -91,5 +91,7 @@ class KLSimilarityLoss(nn.Module):
 
     def get_config_dict(self) -> Dict[str, Any]:
         return {
+            "scale": self.scale,
+            "similarity_fct": self.similarity_fn.__name__,
             "similarity": self.similarity.name
         }
