@@ -90,6 +90,7 @@ def map_objective(
         train_raw_dataset, **train_dataset_spec.preprocess_args
     )
     train_dataset = Dataset.from_generator(train_dataset_preprocess)
+    train_dataset = train_dataset.shuffle()
 
     if validation_dataset_spec:
         validation_raw_dataset = load_dataset(
@@ -101,6 +102,7 @@ def map_objective(
         validation_dataset = Dataset.from_generator(
             validation_dataset_preprocess
         )
+        validation_dataset = validation_dataset.shuffle()
     else:
         validation_dataset = None
 
