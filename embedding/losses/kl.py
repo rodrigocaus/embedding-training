@@ -60,6 +60,7 @@ class KLSimilarityLoss(nn.Module):
         student: SentenceTransformer,
         teacher: SentenceTransformer,
         scale: float = 20.0,
+        reduction: str = "batchmean",
         similarity: SimilarityFunction = SimilarityFunction.DOT
     ) -> None:
         super().__init__()
@@ -69,7 +70,7 @@ class KLSimilarityLoss(nn.Module):
         self.scale = scale
         self.similarity = similarity
         self.similarity_fn = similarity.to_similarity_fn(similarity)
-        self.loss_fn = nn.KLDivLoss(log_target=True, reduction='mean')
+        self.loss_fn = nn.KLDivLoss(log_target=True, reduction=reduction)
 
     def scores(self, model: SentenceTransformer, sentence_features: Iterable[Dict[str, Tensor]]) -> Tensor:
         reps = [
