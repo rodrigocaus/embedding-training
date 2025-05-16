@@ -60,3 +60,6 @@ evaluator:
     accuracy_at_k: [1, 10]
     precision_recall_at_k: [1, 10]
     map_at_k: [1, 10]
+early_stopping:
+  patience: 5
+  threshold: 0.001
