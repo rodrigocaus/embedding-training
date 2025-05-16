@@ -7,6 +7,7 @@ from util import logger, profiler
 from torch import nn
 from typing import NamedTuple, Optional
 from datasets import load_dataset, Dataset
+from transformers import EarlyStoppingCallback
 from sentence_transformers import (
     losses, evaluation,
     SentenceTransformer, SentenceTransformerTrainer
@@ -153,6 +154,15 @@ def main(filename: str):
     if not validation_dataset:
         validation_dataset = None
 
+    callbacks = [
+        logger.JSONLLoggerCallback(logs_dir),
+        profiler.MemoryProfilerCallback(metrics_dir, monitor_cuda=True)
+    ]
+    if training_config.early_stopping:
+        callbacks.append(
+            EarlyStoppingCallback(**training_config.early_stopping)
+        )
+
     ## Load Evaluator ##
     evaluator = load_evaluator(training_config.evaluator)
 
@@ -164,10 +174,7 @@ def main(filename: str):
         eval_dataset=validation_dataset,
         loss=losses,
         evaluator=evaluator,
-        callbacks=[
-            logger.JSONLLoggerCallback(logs_dir),
-            profiler.MemoryProfilerCallback(metrics_dir, monitor_cuda=True)
-        ]
+        callbacks=callbacks
     )
 
     trainer.train()

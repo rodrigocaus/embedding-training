@@ -74,6 +74,7 @@ class TrainingConfigV1:
     objectives: List[TrainingObjective]
     args: SentenceTransformerTrainingArguments
     evaluator: EvaluatorConfig
+    early_stopping: Object = field(default_factory=dict)
 
 
 def _is_optional_type(field) -> bool:
