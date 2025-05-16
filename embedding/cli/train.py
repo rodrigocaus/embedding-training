@@ -159,8 +159,12 @@ def main(filename: str):
         profiler.MemoryProfilerCallback(metrics_dir, monitor_cuda=True)
     ]
     if training_config.early_stopping:
+        args = {
+            f"early_stopping_{key}": value
+            for key, value in training_config.early_stopping.items()
+        }
         callbacks.append(
-            EarlyStoppingCallback(**training_config.early_stopping)
+            EarlyStoppingCallback(**args)
         )
 
     ## Load Evaluator ##
