@@ -164,7 +164,7 @@ def main(filename: str):
             for key, value in training_config.early_stopping.items()
         }
         callbacks.append(
-            EarlyStoppingCallback(**training_config.early_stopping)
+            EarlyStoppingCallback(**args)
         )
 
     ## Load Evaluator ##
