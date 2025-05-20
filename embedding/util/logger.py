@@ -4,6 +4,8 @@ from transformers.trainer import TrainerCallback
 from transformers.trainer_callback import TrainerControl, TrainerState
 from transformers.training_args import TrainingArguments
 
+LogEntry = Dict[str, float]
+
 
 class JSONLLoggerCallback(TrainerCallback):
     """
@@ -26,18 +28,22 @@ class JSONLLoggerCallback(TrainerCallback):
             self._writer = open(self._filename, self._mode)
         return self._writer
 
-    def on_log(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
-        log: Optional[Dict[str, float]] = None
-        if "log" in kwargs and kwargs["log"]:
-            log = kwargs["log"]
-        elif state.log_history:
-            log = state.log_history[-1]
+    def on_log(
+        self,
+        args: TrainingArguments,
+        state: TrainerState,
+        control: TrainerControl,
+        logs: Optional[LogEntry] = None,
+        **kwargs
+    ):
+        if not logs and state.log_history:
+            logs = state.log_history[-1]
 
-        if log:
-            line = json.dumps(log, ensure_ascii=False) + "\n"
+        if logs:
+            logs["step"] = state.global_step
+            line = json.dumps(logs, ensure_ascii=False) + "\n"
             self.writer.write(line)
 
     def on_train_end(self, *pargs, **kwargs):
         if self._writer is not None:
             self._writer.close()
-            self._writer = None
