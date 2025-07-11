@@ -61,7 +61,7 @@ class KLSimilarityLoss(nn.Module):
         teacher: SentenceTransformer,
         scale: float = 20.0,
         reduction: str = "batchmean",
-        similarity: SimilarityFunction = SimilarityFunction.DOT
+        similarity: SimilarityFunction = SimilarityFunction.COSINE
     ) -> None:
         super().__init__()
 
