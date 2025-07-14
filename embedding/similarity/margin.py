@@ -7,7 +7,7 @@ from sentence_transformers import SimilarityFunction
 class SimilarityWithMargin(Callable[[Tensor, Tensor], Tensor]):
     """
         This similarity function is an adaptation of the `SimilarityFunction`.
-        It computes similarity with additional magin between (anchor, positive) pairs
+        It computes similarity with additional margin between (anchor, positive) pairs
         and without the margin between (anchor, negative) pairs:
         ```
             sim*(a, b) = sim(a, b) - m, if a is similar to b
@@ -39,7 +39,7 @@ class SimilarityWithMargin(Callable[[Tensor, Tensor], Tensor]):
 class PairwiseSimilarityWithMargin(Callable[[Tensor, Tensor], Tensor]):
     """
         This similarity function is an adaptation of the `SimilarityFunction` pairwise mode.
-        It computes similarity with additional magin between (sentence_a, sentence_b) pairs
+        It computes similarity with additional margin between (sentence_a, sentence_b) pairs
         ```
             sim*(a, b) = sim(a, b) - m
         ```
