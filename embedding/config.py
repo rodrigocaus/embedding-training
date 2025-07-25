@@ -58,6 +58,7 @@ class TrainingObjective:
     loss_args: Object = field(default_factory=dict)
     matryoshka: Object = field(default_factory=dict)
     distillation: Optional[DistilConfig] = field(default=None)
+    margin: Optional[float] = field(default=None)
 
 
 @dataclass

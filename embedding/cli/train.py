@@ -1,6 +1,7 @@
 import os
 import config
 import preprocess
+import similarity as custom_similarity
 import losses as custom_losses
 from util import logger, profiler
 
@@ -10,6 +11,7 @@ from datasets import load_dataset, Dataset
 from transformers import EarlyStoppingCallback
 from sentence_transformers import (
     losses, evaluation,
+    SimilarityFunction,
     SentenceTransformer, SentenceTransformerTrainer
 )
 
@@ -58,15 +60,34 @@ def map_objective(
     if objective_type not in ("contrastive", "similarity"):
         raise ValueError(f"Unknown objective type: {objective_type}")
 
+    similarity_type = SimilarityFunction.COSINE
+
     ## LOSS DEFINITION ##
     if objective_type == "contrastive":
+        if spec.margin is not None:
+            similarity_fn = custom_similarity.SimilarityWithMargin(
+                margin=spec.margin, similarity=similarity_type
+            )
+        else:
+            similarity_fn = SimilarityFunction.to_similarity_fn(similarity_type)
+
         loss = losses.MultipleNegativesSymmetricRankingLoss(
-            model=model, **spec.loss_args
+            model=model, similarity_fct=similarity_fn, **spec.loss_args
         )
         dataset_preprocessor = preprocess.EFAQRankingGenerator
 
     elif objective_type == "similarity":
-        loss = losses.CoSENTLoss(model=model, **spec.loss_args)
+        if spec.margin is not None:
+            similarity_fn = custom_similarity.PairwiseSimilarityWithMargin(
+                margin=spec.margin, similarity=similarity_type
+            )
+        else:
+            similarity_fn = SimilarityFunction.to_similarity_pairwise_fn(
+                similarity_type
+            )
+        loss = losses.CoSENTLoss(
+            model=model, similarity_fct=similarity_fn, **spec.loss_args
+        )
         dataset_preprocessor = preprocess.EFAQCosineSimilarityGenerator
 
     if spec.matryoshka:
