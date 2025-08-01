@@ -60,16 +60,17 @@ class EFAQRankingGenerator:
                 for entry in dataset["dissimilar"]
                 for sentence in filter_non_empty(entry)
             )
+            negative_samples_pool = unique(negative_samples_pool)
+            random.shuffle(negative_samples_pool)
 
         self.output_columns: Tuple[str, ...] = tuple(columns)
-        self.negative_samples_pool = unique(negative_samples_pool)
+        self.negative_samples_pool = negative_samples_pool
 
     def as_columns_dict(self, *args):
         return dict(zip(self.output_columns, args))
 
     def __iter__(self):
         if self.negative_samples_pool and self.negative_samples > 0:
-            random.shuffle(self.negative_samples_pool)
             negative_samples_pool = itertools.cycle(self.negative_samples_pool)
         else:
             negative_samples_pool = None
@@ -86,8 +87,13 @@ class EFAQRankingGenerator:
                 entry["dissimilar"] + entry["almost_similar"]
             ))
 
+            if len(negative_candidates) < self.negative_samples and negative_samples_pool is None:
+                continue
+
             while len(negative_candidates) < self.negative_samples:
-                additional_negatives_needed = self.negative_samples - len(negative_candidates)
+                additional_negatives_needed = (
+                    self.negative_samples - len(negative_candidates)
+                )
                 new_negatives = itertools.islice(
                     negative_samples_pool, additional_negatives_needed
                 )
