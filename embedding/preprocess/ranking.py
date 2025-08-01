@@ -35,7 +35,7 @@ class EFAQRankingGenerator:
             The number of negative samples to include in each tuple.
             If 0, no negatives are included. If > 0, and not enough
             negatives can be found for an (anchor, positive) pair,
-            that pair is skipped.
+            they are completed from a global pool of negative samples.
     """
 
     def __init__(self, dataset: Dataset, negative_samples: int) -> None:
@@ -97,10 +97,10 @@ class EFAQRankingGenerator:
                 if self.negative_samples == 0:
                     yield self.as_columns_dict(anchor, positive)
                 else:
-                    negatives = random.sample(
-                        list(negative_candidates), self.negative_samples
-                    )
-                    yield self.as_columns_dict(anchor, positive, *negatives)
+                    for negatives in itertools.combinations(
+                        negative_candidates, self.negative_samples
+                    ):
+                        yield self.as_columns_dict(anchor, positive, *negatives)
 
     def __call__(self):
         return iter(self)
