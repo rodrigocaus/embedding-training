@@ -53,16 +53,16 @@ class EFAQRankingGenerator:
             negative_samples_pool.extend(
                 sentence
                 for entry in dataset["almost_similar"]
-                for sentence in filter_non_empty(unique(entry))
+                for sentence in filter_non_empty(entry)
             )
             negative_samples_pool.extend(
                 sentence
                 for entry in dataset["dissimilar"]
-                for sentence in filter_non_empty(unique(entry))
+                for sentence in filter_non_empty(entry)
             )
 
         self.output_columns: Tuple[str, ...] = tuple(columns)
-        self.negative_samples_pool = negative_samples_pool
+        self.negative_samples_pool = unique(negative_samples_pool)
 
     def as_columns_dict(self, *args):
         return dict(zip(self.output_columns, args))
@@ -81,18 +81,24 @@ class EFAQRankingGenerator:
             )
             if not positive_candidates:
                 continue
-            potential_negatives: Set[str] = set(filter_non_empty(
+
+            negative_candidates: Set[str] = set(filter_non_empty(
                 entry["dissimilar"] + entry["almost_similar"]
             ))
-            while len(potential_negatives) < self.negative_samples:
-                potential_negatives.add(next(negative_samples_pool))
+
+            while len(negative_candidates) < self.negative_samples:
+                additional_negatives_needed = self.negative_samples - len(negative_candidates)
+                new_negatives = itertools.islice(
+                    negative_samples_pool, additional_negatives_needed
+                )
+                negative_candidates.update(new_negatives)
 
             for positive in positive_candidates:
                 if self.negative_samples == 0:
                     yield self.as_columns_dict(anchor, positive)
                 else:
                     negatives = random.sample(
-                        list(potential_negatives), self.negative_samples
+                        list(negative_candidates), self.negative_samples
                     )
                     yield self.as_columns_dict(anchor, positive, *negatives)
 
