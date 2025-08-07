@@ -1,6 +1,7 @@
+import random
 import itertools
 from datasets import Dataset
-from typing import Iterable, List, Tuple, TypeVar
+from typing import Iterable, List, Set, Tuple, TypeVar
 
 T = TypeVar("T")
 
@@ -34,7 +35,7 @@ class EFAQRankingGenerator:
             The number of negative samples to include in each tuple.
             If 0, no negatives are included. If > 0, and not enough
             negatives can be found for an (anchor, positive) pair,
-            that pair is skipped.
+            they are completed from a global pool of negative samples.
     """
 
     def __init__(self, dataset: Dataset, negative_samples: int) -> None:
@@ -42,33 +43,69 @@ class EFAQRankingGenerator:
             raise ValueError("negative_samples must be >= 0")
         self.dataset = dataset
         self.negative_samples = negative_samples
+
+        negative_samples_pool: List[str] = []
         columns = ["anchor", "positive"]
         if self.negative_samples > 0:
             columns.extend([
                 f"negative_{i+1}" for i in range(self.negative_samples)
             ])
+            negative_samples_pool.extend(
+                sentence
+                for entry in dataset["almost_similar"]
+                for sentence in filter_non_empty(entry)
+            )
+            negative_samples_pool.extend(
+                sentence
+                for entry in dataset["dissimilar"]
+                for sentence in filter_non_empty(entry)
+            )
+            negative_samples_pool = unique(negative_samples_pool)
+            random.shuffle(negative_samples_pool)
+
         self.output_columns: Tuple[str, ...] = tuple(columns)
+        self.negative_samples_pool = negative_samples_pool
 
     def as_columns_dict(self, *args):
         return dict(zip(self.output_columns, args))
 
     def __iter__(self):
+        if self.negative_samples_pool and self.negative_samples > 0:
+            negative_samples_pool = itertools.cycle(self.negative_samples_pool)
+        else:
+            negative_samples_pool = None
+
         for entry in self.dataset:
             anchor: str = entry["sentence"]
             positive_candidates: List[str] = filter_non_empty(
                 unique(entry["similar"])
             )
-            potential_negatives: List[str] = filter_non_empty(
-                unique(entry["almost_similar"] + entry["dissimilar"])
-            )
             if not positive_candidates:
                 continue
+
+            negative_candidates: Set[str] = set(filter_non_empty(
+                entry["dissimilar"] + entry["almost_similar"]
+            ))
+
+            if len(negative_candidates) < self.negative_samples and negative_samples_pool is None:
+                continue
+
+            while len(negative_candidates) < self.negative_samples:
+                additional_negatives_needed = (
+                    self.negative_samples - len(negative_candidates)
+                )
+                new_negatives = itertools.islice(
+                    negative_samples_pool, additional_negatives_needed
+                )
+                negative_candidates.update(new_negatives)
 
             for positive in positive_candidates:
                 if self.negative_samples == 0:
                     yield self.as_columns_dict(anchor, positive)
-                elif len(potential_negatives) >= self.negative_samples:
-                    for negatives in itertools.combinations(potential_negatives, self.negative_samples):
+                else:
+                    for negatives in itertools.combinations(
+                        negative_candidates, self.negative_samples
+                    ):
                         yield self.as_columns_dict(anchor, positive, *negatives)
 
     def __call__(self):
