@@ -103,10 +103,11 @@ class EFAQRankingGenerator:
                 if self.negative_samples == 0:
                     yield self.as_columns_dict(anchor, positive)
                 else:
-                    for negatives in itertools.combinations(
-                        negative_candidates, self.negative_samples
-                    ):
-                        yield self.as_columns_dict(anchor, positive, *negatives)
+                    negatives = random.sample(
+                        tuple(negative_candidates),
+                        self.negative_samples
+                    )
+                    yield self.as_columns_dict(anchor, positive, *negatives)
 
     def __call__(self):
         return iter(self)
