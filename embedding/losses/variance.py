@@ -1,6 +1,6 @@
 import torch
 from torch import nn, Tensor
-from typing import Any, Dict, Iterable
+from typing import Dict, Iterable
 from sentence_transformers import (
     SentenceTransformer,
     util
@@ -8,9 +8,22 @@ from sentence_transformers import (
 
 
 _DOCSTRING_HEADER = """
-        This loss an adaptation from Lee et al., to improve mini-batch
+        This loss is an adaptation from Lee et al., to improve mini-batch
         contrastive learning by introducing an auxiliary loss term which
-        explicitly reduces the variance of negative-pair similarities
+        explicitly reduces the variance of negative-pair similarities.
+
+        The loss is computed as:
+        .. math::
+            L = \\frac{1}{m(m-1)} \\sum_{i \\ne j} (cos(u_i, v_j) + \\epsilon)^2
+
+        where m is the batch size and :math:`\\epsilon` is the expectation of all
+        negative-pair similarities mean. It can be an arbitrarily defined small value,
+        but is ideally defined by:
+
+        .. math::
+            \\epsilon = \\frac{1}{N-1}
+
+        where N is the dataset size.
 
         Args:
             model: SentenceTransformer model
@@ -22,7 +35,7 @@ class NegativesVariancePenaltyLoss(nn.Module):
     def __init__(
         self,
         model: SentenceTransformer,
-        eps: float = 1e-6,
+        eps: float = 1e-5,
     ) -> None:
         super().__init__()
         self.model = model
@@ -63,7 +76,7 @@ class InBatchNegativesVariancePenaltyLoss(NegativesVariancePenaltyLoss):
 
                 model = SentenceTransformer("microsoft/mpnet-base")
                 train_dataset = Dataset.from_dict({
-        "sentence1": ["It's nice weather outside today.", "He drove to work."],
+                    "sentence1": ["It's nice weather outside today.", "He drove to work."],
                     "sentence2": ["It's so sunny.", "She walked to the store."],
                 })
                 loss = InBatchNegativesVariancePenaltyLoss(model)
@@ -88,8 +101,8 @@ class InBatchNegativesVariancePenaltyLoss(NegativesVariancePenaltyLoss):
         n, m = scores.shape
         # mask out positive pairs
         mask = 1.0 - torch.eye(n, m, device=scores.device)
-        variances = torch.square((self.eps + scores)*mask)
-        return (variances.sum()/n)/(n-1.0)
+        negative_squared_scores = torch.square((scores + self.eps) * mask)
+        return negative_squared_scores.sum()/(n * (n - 1.0) + 1e-8)
 
 
 class LabeledNegativesVariancePenaltyLoss(NegativesVariancePenaltyLoss):
@@ -113,7 +126,7 @@ class LabeledNegativesVariancePenaltyLoss(NegativesVariancePenaltyLoss):
 
                 model = SentenceTransformer("microsoft/mpnet-base")
                 train_dataset = Dataset.from_dict({
-        "sentence1": ["It's nice weather outside today.", "He drove to work."],
+                    "sentence1": ["It's nice weather outside today.", "He drove to work."],
                     "sentence2": ["It's so sunny.", "She walked to the store."],
                     "score": [1.0, 0.3],
                 })
@@ -134,6 +147,7 @@ class LabeledNegativesVariancePenaltyLoss(NegativesVariancePenaltyLoss):
         ]
         scores = util.pairwise_cos_sim(reps[0], reps[1])
         n = len(scores)
+        # mask out positive pairs
         mask = (labels < 0).to(scores.device, torch.float32)
-        variances = torch.square((self.eps + scores)*mask)
-        return variances.sum()/(n-1.0)
+        negative_squared_scores = torch.square((scores + self.eps) * mask)
+        return negative_squared_scores.sum()/(n - 1.0 + 1e-8)
