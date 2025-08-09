@@ -150,4 +150,4 @@ class LabeledNegativesVariancePenaltyLoss(NegativesVariancePenaltyLoss):
         # mask out positive pairs
         mask = (labels < 0).to(scores.device, torch.float32)
         negative_squared_scores = torch.square((scores + self.eps) * mask)
-        return negative_squared_scores.sum()/(n - 1.0 + 1e-8)
+        return negative_squared_scores.sum()/(mask.sum() + 1e-8)
