@@ -7,30 +7,6 @@ from sentence_transformers import (
 )
 
 
-_DOCSTRING_HEADER = """
-        This loss is an adaptation from Lee et al., to improve mini-batch
-        contrastive learning by introducing an auxiliary loss term which
-        explicitly reduces the variance of negative-pair similarities.
-
-        The loss is computed as:
-        .. math::
-            L = \\frac{1}{m(m-1)} \\sum_{i \\ne j} (cos(u_i, v_j) + \\epsilon)^2
-
-        where m is the batch size and :math:`\\epsilon` is the expectation of all
-        negative-pair similarities mean. It can be an arbitrarily defined small value,
-        but is ideally defined by:
-
-        .. math::
-            \\epsilon = \\frac{1}{N-1}
-
-        where N is the dataset size.
-
-        Args:
-            model: SentenceTransformer model
-            eps: margin value of the cosine similarity
-"""
-
-
 class NegativesVariancePenaltyLoss(nn.Module):
     def __init__(
         self,
@@ -54,7 +30,7 @@ class NegativesVariancePenaltyLoss(nn.Module):
 
 
 class InBatchNegativesVariancePenaltyLoss(NegativesVariancePenaltyLoss):
-    f"""{_DOCSTRING_HEADER}
+    """{header}
 
         Requirements:
             1. (anchor, positive) pairs
@@ -75,10 +51,10 @@ class InBatchNegativesVariancePenaltyLoss(NegativesVariancePenaltyLoss):
                 from datasets import Dataset
 
                 model = SentenceTransformer("microsoft/mpnet-base")
-                train_dataset = Dataset.from_dict({
+                train_dataset = Dataset.from_dict({{
                     "sentence1": ["It's nice weather outside today.", "He drove to work."],
                     "sentence2": ["It's so sunny.", "She walked to the store."],
-                })
+                }})
                 loss = InBatchNegativesVariancePenaltyLoss(model)
 
                 trainer = SentenceTransformerTrainer(
@@ -106,7 +82,7 @@ class InBatchNegativesVariancePenaltyLoss(NegativesVariancePenaltyLoss):
 
 
 class LabeledNegativesVariancePenaltyLoss(NegativesVariancePenaltyLoss):
-    f"""{_DOCSTRING_HEADER}
+    """{header}
 
         Requirements:
             - Sentence pairs with corresponding similarity scores in range of the similarity function. Default is [-1,1].
@@ -125,11 +101,11 @@ class LabeledNegativesVariancePenaltyLoss(NegativesVariancePenaltyLoss):
                 from datasets import Dataset
 
                 model = SentenceTransformer("microsoft/mpnet-base")
-                train_dataset = Dataset.from_dict({
+                train_dataset = Dataset.from_dict({{
                     "sentence1": ["It's nice weather outside today.", "He drove to work."],
                     "sentence2": ["It's so sunny.", "She walked to the store."],
                     "score": [1.0, 0.3],
-                })
+                }})
                 loss = LabeledNegativesVariancePenaltyLoss(model)
 
                 trainer = SentenceTransformerTrainer(
@@ -151,3 +127,34 @@ class LabeledNegativesVariancePenaltyLoss(NegativesVariancePenaltyLoss):
         mask = (labels < 0).to(scores.device, torch.float32)
         negative_squared_scores = torch.square((scores + self.eps) * mask)
         return negative_squared_scores.sum()/(mask.sum() + 1e-8)
+
+
+_DOCSTRING_HEADER = """
+        This loss is an adaptation from Lee et al., to improve mini-batch
+        contrastive learning by introducing an auxiliary loss term which
+        explicitly reduces the variance of negative-pair similarities.
+
+        The loss is computed as:
+        .. math::
+            L = \\frac{1}{m(m-1)} \\sum_{i \\ne j} (cos(u_i, v_j) + \\epsilon)^2
+
+        where m is the batch size and :math:`\\epsilon` is the expectation of all
+        negative-pair similarities mean. It can be an arbitrarily defined small value,
+        but is ideally defined by:
+
+        .. math::
+            \\epsilon = \\frac{1}{N-1}
+
+        where N is the dataset size.
+
+        Args:
+            model: SentenceTransformer model
+            eps: margin value of the cosine similarity
+"""
+
+InBatchNegativesVariancePenaltyLoss.__doc__ = InBatchNegativesVariancePenaltyLoss.__doc__.format(
+    header=_DOCSTRING_HEADER
+)
+LabeledNegativesVariancePenaltyLoss.__doc__ = LabeledNegativesVariancePenaltyLoss.__doc__.format(
+    header=_DOCSTRING_HEADER
+)
