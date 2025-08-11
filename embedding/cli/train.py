@@ -6,7 +6,7 @@ import losses as custom_losses
 from util import logger, profiler
 
 from torch import nn
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, Tuple
 from datasets import load_dataset, Dataset
 from transformers import EarlyStoppingCallback
 from sentence_transformers import (
@@ -25,11 +25,10 @@ class Objective(NamedTuple):
 
 def map_teacher(
     model: SentenceTransformer,
-    loss: nn.Module,
     spec: config.DistilConfig,
     objective: str,
     teacher_pool: dict
-) -> nn.Module:
+) -> Tuple[nn.Module, float]:
     if spec.teacher.name not in teacher_pool:
         teacher_pool[spec.teacher.name] = SentenceTransformer(
             spec.teacher.name, **spec.teacher.args
@@ -45,10 +44,24 @@ def map_teacher(
             student=model, teacher=teacher, **spec.loss_args
         )
 
-    return custom_losses.CompositionLoss(
-        losses=[loss, distil_loss],
-        weights=[1.0, spec.alpha]
-    )
+    return distil_loss, spec.alpha
+
+
+def map_variation_penalty(
+    model: SentenceTransformer,
+    spec: config.VariationPenaltyConfig,
+    objective: str
+) -> Tuple[nn.Module, float]:
+    if objective == "contrastive":
+        variation_penalty_loss = custom_losses.InBatchNegativesVariancePenaltyLoss(
+            model=model, **spec.loss_args
+        )
+    if objective == "similarity":
+        variation_penalty_loss = custom_losses.LabeledNegativesVariancePenaltyLoss(
+            model=model, **spec.loss_args
+        )
+
+    return variation_penalty_loss, spec.alpha
 
 
 def map_objective(
@@ -69,8 +82,9 @@ def map_objective(
                 margin=spec.margin, similarity=similarity_type
             )
         else:
-            similarity_fn = SimilarityFunction.to_similarity_fn(similarity_type)
-
+            similarity_fn = SimilarityFunction.to_similarity_fn(
+                similarity_type
+            )
         loss = losses.MultipleNegativesSymmetricRankingLoss(
             model=model, similarity_fct=similarity_fn, **spec.loss_args
         )
@@ -96,9 +110,22 @@ def map_objective(
             loss=loss,
             **spec.matryoshka
         )
+
+    extra_losses = []
     if spec.distillation:
-        loss = map_teacher(
-            model, loss, spec.distillation, objective_type, teacher_pool
+        extra_losses.append(map_teacher(
+            model, spec.distillation, objective_type, teacher_pool
+        ))
+    if spec.variation_penalty:
+        extra_losses.append(map_variation_penalty(
+            model, spec.variation_penalty, objective_type
+        ))
+
+    if extra_losses:
+        extra_losses.insert(0, (loss, 1.0))
+        loss_fn, weights = zip(*extra_losses)
+        loss = custom_losses.CompositionLoss(
+            losses=loss_fn, weights=weights
         )
 
     ## DATASETS DEFINITION ##

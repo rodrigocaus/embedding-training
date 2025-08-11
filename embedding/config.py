@@ -52,6 +52,12 @@ class DistilConfig:
 
 
 @dataclass
+class VariationPenaltyConfig:
+    alpha: float
+    loss_args: Object = field(default_factory=dict)
+
+
+@dataclass
 class TrainingObjective:
     type: ObjectiveType
     datasets: TrainingDatasets
@@ -59,6 +65,7 @@ class TrainingObjective:
     matryoshka: Object = field(default_factory=dict)
     distillation: Optional[DistilConfig] = field(default=None)
     margin: Optional[float] = field(default=None)
+    variation_penalty: Optional[VariationPenaltyConfig] = field(default=None)
 
 
 @dataclass
