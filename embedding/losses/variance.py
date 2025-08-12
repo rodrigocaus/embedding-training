@@ -11,7 +11,7 @@ class NegativesVariancePenaltyLoss(nn.Module):
     def __init__(
         self,
         model: SentenceTransformer,
-        eps: float = 1e-5,
+        eps: float = 2e-5,
     ) -> None:
         super().__init__()
         self.model = model
@@ -78,7 +78,7 @@ class InBatchNegativesVariancePenaltyLoss(NegativesVariancePenaltyLoss):
         # mask out positive pairs
         mask = 1.0 - torch.eye(n, m, device=scores.device)
         negative_squared_scores = torch.square((scores + self.eps) * mask)
-        return negative_squared_scores.sum()/(n * (n - 1.0) + 1e-8)
+        return negative_squared_scores.sum()/(mask.sum() + 1e-8)
 
 
 class LabeledNegativesVariancePenaltyLoss(NegativesVariancePenaltyLoss):
