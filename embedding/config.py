@@ -61,6 +61,7 @@ class VariationPenaltyConfig:
 class TrainingObjective:
     type: ObjectiveType
     datasets: TrainingDatasets
+    loss: Optional[str] = field(default="default")
     loss_args: Object = field(default_factory=dict)
     matryoshka: Object = field(default_factory=dict)
     distillation: Optional[DistilConfig] = field(default=None)
