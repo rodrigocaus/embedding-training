@@ -9,7 +9,14 @@ from sentence_transformers import (
 
 
 class SimilarityDistillationLoss(nn.Module):
-    """
+    def __init__(
+        self,
+        student: SentenceTransformer,
+        teacher: SentenceTransformer,
+        scale: float = 20.0,
+        similarity: SimilarityFunction = SimilarityFunction.DOT
+    ) -> None:
+        """
         This loss is an adaptation of CoSENTLoss for distillation. It uses a teacher model to generate similarity scores
         between sentence pairs, and then trains a student model to mimic these similarity scores using the CoSENTLoss.
 
@@ -49,15 +56,7 @@ class SimilarityDistillationLoss(nn.Module):
                     loss=loss,
                 )
                 trainer.train()
-    """
-
-    def __init__(
-        self,
-        student: SentenceTransformer,
-        teacher: SentenceTransformer,
-        scale: float = 20.0,
-        similarity: SimilarityFunction = SimilarityFunction.DOT
-    ) -> None:
+        """
         super().__init__()
 
         self.teacher = teacher

@@ -1,4 +1,10 @@
-from .kl import KLSimilarityLoss
-from .similarity import SimilarityDistillationLoss
+from .distillation import *
 from .composition import CompositionLoss
 from .variance import InBatchNegativesVariancePenaltyLoss, LabeledNegativesVariancePenaltyLoss
+
+
+__all__ = [
+    "KLSimilarityLoss",
+    "SimilarityDistillationLoss",
+    "CompositionLoss",
+]

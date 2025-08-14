@@ -8,7 +8,15 @@ from sentence_transformers import (
 
 
 class KLSimilarityLoss(nn.Module):
-    """
+    def __init__(
+        self,
+        student: SentenceTransformer,
+        teacher: SentenceTransformer,
+        scale: float = 20.0,
+        reduction: str = "batchmean",
+        similarity: SimilarityFunction = SimilarityFunction.COSINE
+    ) -> None:
+        """
         This loss is an adaptation of MultipleNegativesRankingLoss. MultipleNegativesRankingLoss computes the following loss:
         For a given anchor and a list of candidates, find the positive candidate.
 
@@ -54,15 +62,6 @@ class KLSimilarityLoss(nn.Module):
                 )
                 trainer.train()
         """
-
-    def __init__(
-        self,
-        student: SentenceTransformer,
-        teacher: SentenceTransformer,
-        scale: float = 20.0,
-        reduction: str = "batchmean",
-        similarity: SimilarityFunction = SimilarityFunction.COSINE
-    ) -> None:
         super().__init__()
 
         self.teacher = teacher
