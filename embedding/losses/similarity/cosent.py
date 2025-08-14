@@ -12,7 +12,7 @@ class AugmentedCoSENTLoss(nn.Module):
         """
         This class implements an augmented version of CoSENT (Cosine Sentence) loss.
         It expects that each of the InputExamples consists of a pair of texts and a float valued label, representing
-        the expected similarity score between the pair. Additinally, each of the InputExamples are assumed unrelated
+        the expected similarity score between the pair. Additionally, each of the InputExamples are assumed unrelated
         within a mini-batch.
 
         It computes the following loss function:
