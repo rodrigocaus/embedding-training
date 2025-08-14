@@ -24,6 +24,9 @@ _loss_objective_mapping = {
     "similarity": {
         "cosine": losses.CoSENTLoss,
         "augmented-cosine": custom_losses.AugmentedCoSENTLoss,
+        "cross-entropy": custom_losses.BinaryCrossEntropyLoss,
+        "augmented-cross-entropy": custom_losses.AugmentedBinaryCrossEntropyLoss,
+        "cosine-cross-entropy": custom_losses.CosineCrossEntropyLoss,
         "default": losses.CoSENTLoss,
     }
 }
