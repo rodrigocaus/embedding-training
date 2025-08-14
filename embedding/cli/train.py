@@ -112,8 +112,10 @@ def map_objective(
     try:
         loss_type = _loss_objective_mapping[objective_type][spec.loss]
     except KeyError:
-        logging.warning("Invalid loss specified, using default")
         loss_type = _loss_objective_mapping[objective_type]["default"]
+        logging.warning(
+            f'Invalid loss "{spec.loss}" specified for {objective_type}, using default "{loss_type.__name__}"'
+        )
 
     loss = loss_type(model=model, **spec.loss_args)
 
