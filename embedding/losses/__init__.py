@@ -5,8 +5,7 @@ from .variance import InBatchNegativesVariancePenaltyLoss, LabeledNegativesVaria
 
 
 __all__ = [
-    "KLSimilarityLoss",
-    "SimilarityDistillationLoss",
     "CompositionLoss",
-    "AugmentedCoSENTLoss",
+    "InBatchNegativesVariancePenaltyLoss",
+    "LabeledNegativesVariancePenaltyLoss"
 ]
