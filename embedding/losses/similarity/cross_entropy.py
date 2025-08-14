@@ -129,8 +129,6 @@ class CosineCrossEntropyLoss(nn.Module):
         super().__init__()
         self.model = model
         self.scale = scale
-        self._zero = torch.tensor(0.0)
-        self._one = torch.tensor(1.0)
 
     def forward(self, sentence_features: Iterable[dict[str, Tensor]], labels: Tensor) -> Tensor:
         embeddings = [
@@ -140,7 +138,7 @@ class CosineCrossEntropyLoss(nn.Module):
 
         scores = util.pairwise_cos_sim(embeddings[0], embeddings[1])
         scores = 0.5 * (scores + 1)
-        scores = torch.clamp(scores, min=self._zero, max=self._one)
+        scores = torch.clamp(scores, min=0.0, max=1.0)
 
         labels = torch.sigmoid(labels * self.scale)
 
