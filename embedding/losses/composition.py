@@ -41,7 +41,7 @@ class CompositionLoss(nn.Module):
         weights: Sequence[float] = []
     ) -> None:
         super().__init__()
-        self.losses = list(losses)
+        self.losses = nn.ModuleList(losses)
         if not weights:
             weights = [1.0] * len(losses)
         if len(weights) != len(losses):
