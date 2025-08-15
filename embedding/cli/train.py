@@ -19,6 +19,7 @@ from sentence_transformers import (
 _loss_objective_mapping = {
     "contrastive": {
         "ranking": losses.MultipleNegativesSymmetricRankingLoss,
+        "augmented-ranking": custom_losses.AugmentedMultipleNegativesSymmetricRankingLoss,
         "default": losses.MultipleNegativesSymmetricRankingLoss,
     },
     "similarity": {
