@@ -1,5 +1,6 @@
 import os
 import config
+import logging
 import preprocess
 import similarity as custom_similarity
 import losses as custom_losses
@@ -14,6 +15,21 @@ from sentence_transformers import (
     SimilarityFunction,
     SentenceTransformer, SentenceTransformerTrainer
 )
+
+_loss_objective_mapping = {
+    "contrastive": {
+        "ranking": losses.MultipleNegativesSymmetricRankingLoss,
+        "default": losses.MultipleNegativesSymmetricRankingLoss,
+    },
+    "similarity": {
+        "cosine": losses.CoSENTLoss,
+        "augmented-cosine": custom_losses.AugmentedCoSENTLoss,
+        "cross-entropy": custom_losses.BinaryCrossEntropyLoss,
+        "augmented-cross-entropy": custom_losses.AugmentedBinaryCrossEntropyLoss,
+        "cosine-cross-entropy": custom_losses.CosineCrossEntropyLoss,
+        "default": losses.CoSENTLoss,
+    }
+}
 
 
 class Objective(NamedTuple):
@@ -70,39 +86,38 @@ def map_objective(
     teacher_pool: dict
 ) -> Objective:
     objective_type = spec.type
-    if objective_type not in ("contrastive", "similarity"):
+    if objective_type not in _loss_objective_mapping.keys():
         raise ValueError(f"Unknown objective type: {objective_type}")
 
-    similarity_type = SimilarityFunction.COSINE
+    ## SIMILARITY DEFINITION ##
+    if spec.margin is not None:
+        if objective_type == "contrastive":
+            similarity_fn = custom_similarity.SimilarityWithMargin(
+                margin=spec.margin, similarity=SimilarityFunction.COSINE
+            )
+        elif objective_type == "similarity":
+            similarity_fn = custom_similarity.PairwiseSimilarityWithMargin(
+                margin=spec.margin, similarity=SimilarityFunction.COSINE
+            )
+
+        spec.loss_args["similarity_fct"] = similarity_fn
+
+    ## DATASET DEFINITION ##
+    if objective_type == "contrastive":
+        dataset_preprocessor = preprocess.EFAQRankingGenerator
+    elif objective_type == "similarity":
+        dataset_preprocessor = preprocess.EFAQCosineSimilarityGenerator
 
     ## LOSS DEFINITION ##
-    if objective_type == "contrastive":
-        if spec.margin is not None:
-            similarity_fn = custom_similarity.SimilarityWithMargin(
-                margin=spec.margin, similarity=similarity_type
-            )
-        else:
-            similarity_fn = SimilarityFunction.to_similarity_fn(
-                similarity_type
-            )
-        loss = losses.MultipleNegativesSymmetricRankingLoss(
-            model=model, similarity_fct=similarity_fn, **spec.loss_args
+    try:
+        loss_type = _loss_objective_mapping[objective_type][spec.loss]
+    except KeyError:
+        loss_type = _loss_objective_mapping[objective_type]["default"]
+        logging.warning(
+            f'Invalid loss "{spec.loss}" specified for {objective_type}, using default "{loss_type.__name__}"'
         )
-        dataset_preprocessor = preprocess.EFAQRankingGenerator
 
-    elif objective_type == "similarity":
-        if spec.margin is not None:
-            similarity_fn = custom_similarity.PairwiseSimilarityWithMargin(
-                margin=spec.margin, similarity=similarity_type
-            )
-        else:
-            similarity_fn = SimilarityFunction.to_similarity_pairwise_fn(
-                similarity_type
-            )
-        loss = losses.CoSENTLoss(
-            model=model, similarity_fct=similarity_fn, **spec.loss_args
-        )
-        dataset_preprocessor = preprocess.EFAQCosineSimilarityGenerator
+    loss = loss_type(model=model, **spec.loss_args)
 
     if spec.matryoshka:
         loss = losses.MatryoshkaLoss(
