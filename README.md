@@ -24,45 +24,69 @@ The training process is configured using a YAML or JSON file. Here is an example
 ```yaml
 run_name: "my-experiment"
 base_model:
-  name: "bert-base-uncased"
-  args: {}
-output_dir: "models"
+  name: sentence-transformers/all-MiniLM-L6-v2
+output_dir: models/
 objectives:
-  - type: "contrastive"
+  - type: contrastive
     datasets:
       train:
-        name: "squad"
-        args: {}
-        preprocess_args: {}
+        name: "GoBotsAI/e-faq"
+        args:
+          split: train
+        preprocess_args:
+          negative_samples: 3
       validation:
-        name: "squad"
-        args: {}
-        preprocess_args: {}
-    loss: "default"
-    loss_args: {}
-    matryoshka: {}
-    distillation:
-      alpha: 0.5
-      teacher:
-        name: "bert-large-uncased"
-        args: {}
-      loss_args: {}
-    margin: 0.5
-    variation_penalty:
-      alpha: 0.1
-      loss_args: {}
+        name: "GoBotsAI/e-faq"
+        args:
+          split: validation
+        preprocess_args:
+          negative_samples: 1
+    matryoshka:
+      matryoshka_dims: [64, 128, 256, 384]
+  - type: similarity
+    datasets:
+      train:
+        name: "GoBotsAI/e-faq"
+        args:
+          split: train
+    matryoshka:
+      matryoshka_dims: [64, 128, 256, 384]
+args:
+  max_steps: 100
+  batch_sampler: "no_duplicates"
+  per_device_train_batch_size: 512
+  per_device_eval_batch_size: 2048
+  gradient_checkpointing: true
+  warmup_ratio: 0.1
+  learning_rate: 0.00002
+  eval_strategy: "steps"
+  eval_steps: 25
+  save_strategy: "steps"
+  save_steps: 25
+  save_total_limit: 1
+  save_only_model: true
+  metric_for_best_model: "cosine_map@1"
+  load_best_model_at_end: true
+  logging_first_step: true
+  logging_strategy: "steps"
+  logging_steps: 10
+  push_to_hub: false
 evaluator:
   dataset:
-    name: "squad"
-    args: {}
-    preprocess_args: {}
-  args: {}
-early_stopping: {}
-args:
-  num_train_epochs: 3
-  per_device_train_batch_size: 16
-  per_device_eval_batch_size: 16
-  learning_rate: 2.0e-5
+    name: "GoBotsAI/e-faq"
+    args:
+      split: validation
+    preprocess_args:
+      negative_samples: 5
+  args:
+    mrr_at_k: [10]
+    ndcg_at_k: [10]
+    accuracy_at_k: [1, 10]
+    precision_recall_at_k: [1, 10]
+    map_at_k: [1, 10]
+early_stopping:
+  patience: 5
+  threshold: 0.001
 ```
 
 ### Configuration Options
