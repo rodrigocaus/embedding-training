@@ -2,12 +2,14 @@ import json
 import yaml
 import pathlib
 from dataclasses import dataclass, is_dataclass, field, fields as dataclass_fields
-from typing import Any, Dict, List, Literal, Optional, Union, get_origin, get_args
+from typing import Any, Dict, List, Literal, Optional, Union, TypeVar, get_origin, get_args
 from sentence_transformers import SentenceTransformerTrainingArguments
 
-
+T = TypeVar('T')
 Object = Dict[str, Any]
 ObjectiveType = Literal["contrastive", "similarity"]
+EvaluationTaskType = Literal["sts", "ir"]
+RerankerType = Literal["sentence_transformer", "served"]
 
 
 @dataclass
@@ -86,6 +88,50 @@ class TrainingConfigV1:
     early_stopping: Object = field(default_factory=dict)
 
 
+@dataclass
+class RerankerConfig:
+    """Configuration for a reranker.
+
+    Attributes:
+        type (RerankerType): The type of the reranker.
+        model (ModelConfig): The model to use for reranking.
+    """
+    type: RerankerType
+    model: ModelConfig
+
+
+@dataclass
+class EvaluationTask:
+    """Configuration for an evaluation task.
+
+    Attributes:
+        type (EvaluationTaskType): The type of the task.
+        dataset (DatasetConfig): The dataset to evaluate.
+        reranker (Optional[RerankerConfig]): The reranker to use.
+            Defaults to None.
+    """
+    type: EvaluationTaskType
+    dataset: DatasetConfig
+    args: Object = field(default_factory=dict)
+    reranker: Optional[RerankerConfig] = field(default=None)
+
+
+@dataclass
+class EvaluationConfigV1:
+    """Configuration for an evaluation.
+
+    Attributes:
+        model (ModelConfig): The model to evaluate.
+        dimensions (Optional[List[int]]): The dimensions to evaluate.
+            Defaults to None.
+        tasks (List[EvaluationTask]): The tasks to evaluate.
+    """
+    model: ModelConfig
+    dimensions: Optional[List[int]] = field(default=None)
+    output_dir: str = field(default="results")
+    tasks: List[EvaluationTask] = field(default_factory=list)
+
+
 def _is_optional_type(field) -> bool:
     origin_type = get_origin(field)
     args_type = get_args(field)
@@ -95,7 +141,7 @@ def _is_optional_type(field) -> bool:
             type(None) in args_type)
 
 
-def to_dataclass(data: dict, dataclass_type: type):
+def to_dataclass(data: dict, dataclass_type: type[T]) -> T:
     if not is_dataclass(dataclass_type):
         raise ValueError(f"{dataclass_type} is not a dataclass")
 
@@ -128,9 +174,9 @@ def to_dataclass(data: dict, dataclass_type: type):
     return dataclass_type(**fields)
 
 
-def load(filename: str) -> TrainingConfigV1:
+def load(filename: str, cls: type[T]) -> T:
     """
-        Load a YAML or JSON file into a TrainingConfig object.
+        Load a YAML or JSON file into a Config object.
     """
 
     filepath = pathlib.Path(filename)
@@ -144,4 +190,12 @@ def load(filename: str) -> TrainingConfigV1:
     with filepath.open() as fp:
         data = loader(fp)
 
-    return to_dataclass(data, TrainingConfigV1)
+    return to_dataclass(data, cls)
+
+
+def load_train(filename: str) -> TrainingConfigV1:
+    return load(filename, TrainingConfigV1)
+
+
+def load_eval(filename: str) -> EvaluationConfigV1:
+    return load(filename, EvaluationConfigV1)
