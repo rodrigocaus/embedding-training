@@ -130,3 +130,72 @@ python embedding train --config <path/to/config.yaml>
 ```
 
 Happy training! 😃
+
+
+
+## 🔬 Parametrized Evaluation
+
+In addition to evaluation during training, the framework provides a way to run standalone, parametrized evaluations on your models. This is useful for comparing different models or for evaluating a model on multiple datasets. The evaluation process is configured using a YAML or JSON file.
+
+### Evaluation Configuration
+
+Here is an example of an evaluation configuration file:
+
+```yaml
+model:
+  name: Qwen/Qwen3-Embedding-0.6B
+dimensions: [768, 1024]
+tasks:
+  - type: ir
+    args:
+      mrr_at_k: [10]
+      ndcg_at_k: [10]
+      accuracy_at_k: [1, 3, 10]
+      precision_recall_at_k: [1, 3, 10]
+      map_at_k: [1, 3, 10]
+    dataset:
+      name: GoBotsAI/e-faq
+      args:
+        split: pt
+  - type: ir
+    args:
+      mrr_at_k: [10]
+      ndcg_at_k: [10]
+      accuracy_at_k: [1, 3, 10]
+      precision_recall_at_k: [1, 3, 10]
+      map_at_k: [1, 3, 10]
+    dataset:
+      name: GoBotsAI/e-faq
+      args:
+        split: es
+  - type: sts
+    dataset:
+      name: GoBotsAI/GoSim-3
+      args:
+        split: test
+```
+
+### Evaluation Configuration Options
+
+*   `model`: The model you want to evaluate.
+    *   `name`: The name or path of the model.
+    *   `args`: Additional arguments for loading the model.
+*   `dimensions`: A list of embedding dimensions to evaluate.
+*   `output_dir`: The directory where the evaluation results will be saved.
+*   `tasks`: A list of evaluation tasks.
+    *   `type`: The type of task, which can be `sts` or `ir`.
+    *   `dataset`: The dataset for the task.
+        *   `name`: The name of the dataset.
+        *   `args`: Additional arguments for loading the dataset.
+        *   `preprocess_args`: Arguments for preprocessing the dataset.
+    *   `reranker`: An optional reranker to use for information retrieval tasks.
+        *   `type`: The type of reranker, which can be `sentence_transformer` or `served`.
+        *   `model`: The reranker model.
+
+### How to Run Evaluation
+
+To start the evaluation process, use the following command:
+
+```bash
+python embedding evaluate --config <path/to/eval-config.yaml>
+```
