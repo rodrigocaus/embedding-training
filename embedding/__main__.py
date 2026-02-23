@@ -9,7 +9,8 @@ def train(args: argparse.Namespace):
 
 
 def evaluate(args: argparse.Namespace):
-    pass
+    import cli
+    return cli.evaluate.main(args.config_file)
 
 
 if __name__ == "__main__":
@@ -35,9 +36,12 @@ if __name__ == "__main__":
 
     # create the parser for the "evaluate" command
     parser_eval = subparsers.add_parser('evaluate')
-    parser_eval.add_argument('model_name', type=str, help="model name or path")
     parser_eval.add_argument(
-        '-d', '--dataset', dest='dataset', type=str, help="path to dataset")
+        '-f', '--config-file',
+        dest="config_file",
+        type=str,
+        required=True
+    )
     parser_eval.set_defaults(func=evaluate)
 
     args = parser.parse_args()

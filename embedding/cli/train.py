@@ -188,7 +188,7 @@ def load_evaluator(spec: config.EvaluatorConfig) -> evaluation.InformationRetrie
 
 
 def main(filename: str):
-    training_config = config.load(filename)
+    training_config = config.load_train(filename)
 
     training_args = training_config.args
     training_args.output_dir = os.path.join(
